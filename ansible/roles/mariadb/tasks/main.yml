@@ -10,8 +10,7 @@
   ansible.builtin.command:
     cmd: >
       mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '{{ mariadb_root_password }}'; FLUSH PRIVILEGES;"
-  args:
-    warn: false
+  changed_when: false
 
 - name: Create Ansible user with privileges
   community.mysql.mysql_user:

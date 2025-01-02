@@ -31,7 +31,8 @@ This repository provides a professional deployment of a DNS server using PowerDN
   ```
 4. Run the playbook locally using Ansible:
    ```bash
-      ansible-playbook -i localhost, ansible/install.yml --connection=local
+      ansible-playbook -i localhost, ansible/install.yml --connection=local \
+      -e "mariadb_root_password=secure_root_password ansible_db_password=secure_ansible_password"   
    ```
 
 ## Access
