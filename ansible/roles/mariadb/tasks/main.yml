@@ -11,9 +11,21 @@
     name: mariadb
     state: stopped
 
-- name: Kill any leftover MariaDB processes
+- name: Check if MariaDB processes are running
+  ansible.builtin.shell: pgrep -f mysqld
+  register: mariadb_process_check
+  failed_when: false
+  changed_when: false
+
+- name: Kill MariaDB processes if running
   ansible.builtin.shell: |
-    pkill -f mysqld || true
+    killall -q mysqld_safe mysqld || true
+  when: mariadb_process_check.rc == 0
+  args:
+    executable: /bin/bash
+  retries: 3
+  delay: 5
+  ignore_errors: true
 
 - name: Ensure MariaDB is not running
   ansible.builtin.wait_for:
