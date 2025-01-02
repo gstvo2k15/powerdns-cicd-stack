@@ -1,29 +1,36 @@
-# PowerDNS and MariaDB Deployment
+# PowerDNS and PowerDNS-Admin Deployment
 
-This repository provides a professional deployment of a DNS server using PowerDNS with MariaDB as the backend. It offers two deployment options:
+This repository provides a professional deployment of a DNS server using PowerDNS, PowerDNS-Admin as the frontend, and MariaDB as the backend. It offers flexibility with two deployment options:
+
 1. **Host-based deployment**: Install directly on the host using Ansible roles.
 2. **Docker-in-Docker (DinD) deployment**: Use Docker Compose within a DinD container.
 
 ## Features
-- DNS server with MariaDB backend.
-- Two deployment options for flexibility.
-- Fully automated CI/CD pipelines with GitHub Actions.
-- Code quality checks with ansible-lint and Checkov.
+- DNS server with a web-based admin panel (PowerDNS-Admin).
+- MariaDB as the backend database.
+- CI/CD pipelines for code quality checks and deployment.
 
 ## Project Structure
 - **ansible/**: Contains Ansible roles and playbooks for deployment.
-- **docker/**: Dockerfiles and Docker Compose configurations.
+- **docker/**: Docker Compose configurations for PowerDNS and PowerDNS-Admin.
 - **pipelines/**: CI/CD configurations for GitHub Actions.
 
-## Usage
-### Prerequisites
-- Ansible installed on your control node.
-- Python 3 with pip for dependency management.
+## Prerequisites
+- Ubuntu 22.04 as the target server.
+- Python 3 installed on the control node for Ansible.
+- Docker and Docker Compose on the target server.
 
-### Steps
+## Usage
 1. Clone this repository.
-2. Choose a deployment method (Host or DinD).
-3. Run the Ansible playbook for your chosen method.
+2. Configure the inventory file (`inventory.yml`) for your server's IP and credentials.
+3. Run the playbook using Ansible:
+   ```bash
+   ansible-playbook -i inventory.yml ansible/deploy.yml
+   ```
+
+## Access
+- PowerDNS listens on port `53` (UDP and TCP).
+- PowerDNS-Admin is accessible via `http://<server-ip>:9191`.
 
 ## License
 This project is licensed under the MIT License.

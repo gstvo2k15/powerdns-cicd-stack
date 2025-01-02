@@ -1,0 +1,6 @@
+- name: "Install and configure PowerDNS and MariaDB"
+  hosts: pdns_vm
+  become: true
+  roles:
+    - role: mariadb
+    - role: powerdns
