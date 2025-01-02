@@ -6,11 +6,11 @@
     state: present
     update_cache: yes
 
-- name: Configure MariaDB to use password authentication for root
+- name: Configure MariaDB to use native password authentication for root
   ansible.builtin.command:
     cmd: >
-      mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '{{ mariadb_root_password }}'; FLUSH PRIVILEGES;"
-  changed_when: false
+      mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('{{ mariadb_root_password }}');"
+  when: ansible_facts['distribution_version'] is version('10.4', '>=')
 
 - name: Create Ansible user with privileges
   community.mysql.mysql_user:
