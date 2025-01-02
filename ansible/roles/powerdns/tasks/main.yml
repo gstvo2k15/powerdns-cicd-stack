@@ -1,17 +1,17 @@
 - name: "Install PowerDNS with MariaDB backend"
-  apt:
+  ansible.builtin.apt:
     name:
       - pdns-server
       - pdns-backend-mysql
     state: "present"
 
 - name: "Configure pdns.conf"
-  template:
+  ansible.builtin.template:
     src: "templates/pdns.conf.j2"
     dest: "/etc/powerdns/pdns.conf"
   notify: "Restart PowerDNS"
 
 - name: "Restart PowerDNS"
-  service:
+  ansible.builtin.service:
     name: "pdns"
     state: "restarted"
