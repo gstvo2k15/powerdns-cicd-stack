@@ -1,0 +1,51 @@
+name: CI/CD for PowerDNS Deployment
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Install Dependencies
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install ansible ansible-lint checkov
+
+      - name: Run Ansible Lint
+        run: |
+          source venv/bin/activate
+          ansible-lint deploy.yml
+
+      - name: Run Checkov for Dockerfiles
+        run: |
+          source venv/bin/activate
+          checkov --directory docker/
+
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Deploy with Ansible
+        env:
+          DEPLOY_MODE: ${{ secrets.DEPLOY_MODE }} # Set 'dind' or 'host'
+        run: |
+          if [ "$DEPLOY_MODE" = "dind" ]; then
+            ansible-playbook -i inventory.yml deploy_dind.yml
+          else
+            ansible-playbook -i inventory.yml deploy.yml
+          fi
