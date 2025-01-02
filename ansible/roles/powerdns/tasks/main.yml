@@ -1,3 +1,49 @@
+- name: "Install Nginx"
+  ansible.builtin.apt:
+    name:
+      - nginx
+    state: present
+    update_cache: yes
+
+- name: "Configure Nginx for PowerDNS Admin"
+  ansible.builtin.template:
+    src: "templates/nginx-powerdns.j2"
+    dest: "/etc/nginx/sites-available/powerdns"
+    mode: '0644'
+  notify: Restart Nginx
+
+- name: "Enable Nginx site configuration"
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/powerdns"
+    dest: "/etc/nginx/sites-enabled/powerdns"
+    state: link
+
+- name: "Remove default Nginx site"
+  ansible.builtin.file:
+    path: "/etc/nginx/sites-enabled/default"
+    state: absent
+
+- name: "Restart Nginx"
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+
+- name: "Create PowerDNS database and user"
+  community.mysql.mysql_db:
+    name: pdns
+    state: present
+    login_user: ansible
+    login_password: "{{ ansible_db_password }}"
+
+- name: "Grant privileges to PowerDNS user"
+  community.mysql.mysql_user:
+    name: pdns
+    password: "{{ pdns_user_password }}"
+    priv: "pdns.*:ALL"
+    state: present
+    login_user: ansible
+    login_password: "{{ ansible_db_password }}"
+
 - name: "Install PowerDNS with MariaDB backend"
   ansible.builtin.apt:
     name:

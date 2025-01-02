@@ -16,6 +16,7 @@
     cmd: "mysqld_safe --skip-grant-tables --skip-networking &"
     async: 30
     poll: 0
+    shell: /bin/bash
 
 - name: Wait for MariaDB safe mode
   ansible.builtin.wait_for:
