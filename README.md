@@ -27,8 +27,6 @@ This repository provides a professional deployment of a DNS server using PowerDN
    ```bash
       ansible-playbook /root/powerdns-cicd-stack/ansible/install.yml \
         -i 192.168.1.55, \
-        -u kloud \
-        --become \
         --private-key ~/.ssh/id_rsa.pub
    ```
 
