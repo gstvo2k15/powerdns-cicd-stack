@@ -6,11 +6,36 @@
     state: present
     update_cache: yes
 
-- name: Configure MariaDB to use native password authentication for root
+- name: Stop MariaDB service
+  ansible.builtin.service:
+    name: mariadb
+    state: stopped
+
+- name: Start MariaDB in safe mode
+  ansible.builtin.shell:
+    cmd: "mysqld_safe --skip-grant-tables --skip-networking &"
+    async: 30
+    poll: 0
+
+- name: Wait for MariaDB safe mode
+  ansible.builtin.wait_for:
+    port: 3306
+    timeout: 30
+
+- name: Set root password in MariaDB
   ansible.builtin.command:
     cmd: >
-      mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('{{ mariadb_root_password }}');"
-  when: ansible_facts['distribution_version'] is version('10.4', '>=')
+      mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('{{ mariadb_root_password }}'); FLUSH PRIVILEGES;"
+
+- name: Stop MariaDB safe mode cleanly
+  ansible.builtin.shell:
+    cmd: "mysqladmin shutdown"
+    become: true
+
+- name: Start MariaDB service
+  ansible.builtin.service:
+    name: mariadb
+    state: started
 
 - name: Create Ansible user with privileges
   community.mysql.mysql_user:
@@ -19,6 +44,8 @@
     password: "{{ ansible_db_password }}"
     priv: "*.*:ALL,GRANT"
     state: present
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
 
 - name: "Configure MariaDB"
   ansible.builtin.template:
@@ -31,10 +58,14 @@
   community.mysql.mysql_db:
     name: pdns
     state: present
+    login_user: ansible
+    login_password: "{{ ansible_db_password }}"
 
 - name: "Grant privileges to PowerDNS user"
   community.mysql.mysql_user:
     name: pdns
-    password: securepassword
+    password: "{{ pdns_user_password }}"
     priv: "pdns.*:ALL"
     state: present
+    login_user: ansible
+    login_password: "{{ ansible_db_password }}"
