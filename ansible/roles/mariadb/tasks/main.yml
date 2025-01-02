@@ -13,7 +13,7 @@
 
 - name: Kill any leftover MariaDB processes
   ansible.builtin.shell: |
-    pkill -f mysqld
+    pkill -f mysqld || true
 
 - name: Ensure MariaDB is not running
   ansible.builtin.wait_for:
