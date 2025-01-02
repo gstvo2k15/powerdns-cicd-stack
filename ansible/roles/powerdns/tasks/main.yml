@@ -11,8 +11,3 @@
     dest: "/etc/powerdns/pdns.conf"
     mode: '0644'
   notify: "Restart PowerDNS"
-
-- name: "Restart PowerDNS"
-  ansible.builtin.service:
-    name: "pdns"
-    state: "restarted"
