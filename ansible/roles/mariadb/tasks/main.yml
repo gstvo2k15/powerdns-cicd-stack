@@ -1,27 +1,27 @@
-- name: Install MariaDB
+- name: "Install MariaDB"
   apt:
-    name: mariadb-server
-    state: present
+    name: "mariadb-server"
+    state: "present"
 
-- name: Configure MariaDB
+- name: "Configure MariaDB"
   template:
-    src: templates/mariadb.cnf.j2
-    dest: /etc/mysql/mariadb.conf.d/50-server.cnf
-  notify: Restart MariaDB
+    src: "templates/mariadb.cnf.j2"
+    dest: "/etc/mysql/mariadb.conf.d/50-server.cnf"
+  notify: "Restart MariaDB"
 
-- name: Create PowerDNS database and user
+- name: "Create PowerDNS database and user"
   mysql_db:
-    name: pdns
-    state: present
+    name: "pdns"
+    state: "present"
 
-- name: Grant privileges to PowerDNS user
+- name: "Grant privileges to PowerDNS user"
   mysql_user:
-    name: pdns
-    password: securepassword
+    name: "pdns"
+    password: "securepassword"
     priv: "pdns.*:ALL"
-    state: present
+    state: "present"
 
-- name: Restart MariaDB
+- name: "Restart MariaDB"
   service:
-    name: mariadb
-    state: restarted
+    name: "mariadb"
+    state: "restarted"

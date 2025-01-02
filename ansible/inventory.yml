@@ -1,0 +1,6 @@
+all:
+  hosts:
+    pdns_vm:
+      ansible_host: "192.168.1.55"
+      ansible_user: "kloud"
+      ansible_become: true 

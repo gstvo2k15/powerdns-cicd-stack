@@ -1,17 +1,17 @@
-- name: Install PowerDNS with MariaDB backend
+- name: "Install PowerDNS with MariaDB backend"
   apt:
     name:
       - pdns-server
       - pdns-backend-mysql
-    state: present
+    state: "present"
 
-- name: Configure pdns.conf
+- name: "Configure pdns.conf"
   template:
-    src: templates/pdns.conf.j2
-    dest: /etc/powerdns/pdns.conf
-  notify: Restart PowerDNS
+    src: "templates/pdns.conf.j2"
+    dest: "/etc/powerdns/pdns.conf"
+  notify: "Restart PowerDNS"
 
-- name: Restart PowerDNS
+- name: "Restart PowerDNS"
   service:
-    name: pdns
-    state: restarted
+    name: "pdns"
+    state: "restarted"
