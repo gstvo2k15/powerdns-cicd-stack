@@ -25,12 +25,13 @@ This repository provides a professional deployment of a DNS server using PowerDN
 2. Configure the inventory file (`inventory.yml`) for your server's IP and credentials.
 3. Run the playbook using Ansible:
    ```bash
-   ansible-playbook -i inventory.yml ansible/deploy.yml
+      ansible-playbook /root/powerdns-cicd-stack/ansible/install.yml \
+        -i 192.168.1.55, \
+        -u kloud \
+        --become \
+        --private-key ~/.ssh/id_rsa.pub
    ```
 
 ## Access
 - PowerDNS listens on port `53` (UDP and TCP).
 - PowerDNS-Admin is accessible via `http://<server-ip>:9191`.
-
-## License
-This project is licensed under the MIT License.
