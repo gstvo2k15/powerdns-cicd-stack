@@ -11,6 +11,16 @@
     name: mariadb
     state: stopped
 
+- name: Kill any leftover MariaDB processes
+  ansible.builtin.shell: |
+    pkill -f mysqld
+
+- name: Ensure MariaDB is not running
+  ansible.builtin.wait_for:
+    path: /var/run/mysqld/mysqld.pid
+    state: absent
+    timeout: 30
+
 - name: Start MariaDB in safe mode
   ansible.builtin.shell: |
     nohup mysqld_safe --skip-grant-tables --skip-networking > /tmp/mariadb_safe.log 2>&1 &
