@@ -1,72 +1,33 @@
-- name: Install MariaDB and dependencies
-  ansible.builtin.apt:
-    name:
-      - mariadb-server
-      - mariadb-client
-    state: present
-    update_cache: yes
-
-- name: Stop MariaDB service
-  ansible.builtin.service:
-    name: mariadb
-    state: stopped
-
-- name: Check if MariaDB processes are running
-  ansible.builtin.shell: pgrep -f mysqld
-  register: mariadb_process_check
-  failed_when: false
-  changed_when: false
-
-- name: Kill MariaDB processes if running
-  ansible.builtin.shell: |
-    killall -q mysqld_safe mysqld || true
-  when: mariadb_process_check.rc == 0
-  args:
-    executable: /bin/bash
-  retries: 3
-  delay: 5
-  ignore_errors: true
-
-- name: Ensure MariaDB is not running
-  ansible.builtin.wait_for:
-    path: /var/run/mysqld/mysqld.pid
-    state: absent
-    timeout: 30
-
-- name: Start MariaDB in safe mode
-  ansible.builtin.shell: |
-    nohup mysqld_safe --skip-grant-tables --skip-networking > /tmp/mariadb_safe.log 2>&1 &
-  args:
-    executable: /bin/bash
-
-- name: Wait for MariaDB safe mode
-  ansible.builtin.wait_for:
-    port: 3306
-    host: localhost
-    delay: 5
-    timeout: 90
-
-- name: Set root password in MariaDB
-  ansible.builtin.command:
-    cmd: >
-      mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('{{ mariadb_root_password }}'); FLUSH PRIVILEGES;"
-
-- name: Stop MariaDB safe mode cleanly
-  ansible.builtin.shell: |
-    mysqladmin -u root shutdown
+- name: Create PowerDNS database and user
+  hosts: localhost
   become: true
+  tasks:
+    - name: Install MariaDB and dependencies
+      ansible.builtin.apt:
+        name:
+          - mariadb-server
+          - mariadb-client
+        state: present
+        update_cache: yes
 
-- name: Start MariaDB service
-  ansible.builtin.service:
-    name: mariadb
-    state: started
+    - name: Create PowerDNS database
+      community.mysql.mysql_db:
+        name: pdns
+        state: present
+        login_user: root
+        login_password: "{{ mariadb_root_password }}"
 
-- name: Create Ansible user with privileges
-  community.mysql.mysql_user:
-    name: ansible
-    host: localhost
-    password: "{{ ansible_db_password }}"
-    priv: "*.*:ALL,GRANT"
-    state: present
-    login_user: root
-    login_password: "{{ mariadb_root_password }}"
+    - name: Grant privileges to PowerDNS user
+      community.mysql.mysql_user:
+        name: pdnsadmin
+        host: localhost
+        password: "{{ pdns_user_password }}"
+        priv: "pdns.*:ALL"
+        state: present
+        login_user: root
+        login_password: "{{ mariadb_root_password }}"
+
+    - name: Flush privileges
+      ansible.builtin.command:
+        cmd: >
+          mysql -u root -p{{ mariadb_root_password }} -e "FLUSH PRIVILEGES;"
