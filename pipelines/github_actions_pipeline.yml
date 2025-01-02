@@ -47,4 +47,4 @@ jobs:
           if [ "$DEPLOY_MODE" = "dind" ]; then
             ansible-playbook -i inventory.yml ansible/deploy_dind.yml
           else
-            ansible-playbook -i inventory.yml ansible/deploy.yml
+            ansible-playbook -i inventory.yml ansible/install.yml

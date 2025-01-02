@@ -1,4 +1,5 @@
 - name: "Install and configure PowerDNS and MariaDB"
+  hosts: all
   become: true
   roles:
     - role: mariadb
