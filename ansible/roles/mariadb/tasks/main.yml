@@ -1,33 +1,29 @@
-- name: Create PowerDNS database and user
-  hosts: localhost
-  become: true
-  tasks:
-    - name: Install MariaDB and dependencies
-      ansible.builtin.apt:
-        name:
-          - mariadb-server
-          - mariadb-client
-        state: present
-        update_cache: yes
+- name: "Install MariaDB and dependencies"
+  ansible.builtin.apt:
+    name:
+      - mariadb-server
+      - mariadb-client
+    state: present
+    update_cache: yes
 
-    - name: Create PowerDNS database
-      community.mysql.mysql_db:
-        name: pdns
-        state: present
-        login_user: root
-        login_password: "{{ mariadb_root_password }}"
+- name: "Create PowerDNS database"
+  community.mysql.mysql_db:
+    name: pdns
+    state: present
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
 
-    - name: Grant privileges to PowerDNS user
-      community.mysql.mysql_user:
-        name: pdnsadmin
-        host: localhost
-        password: "{{ pdns_user_password }}"
-        priv: "pdns.*:ALL"
-        state: present
-        login_user: root
-        login_password: "{{ mariadb_root_password }}"
+- name: "Grant privileges to PowerDNS user"
+  community.mysql.mysql_user:
+    name: pdnsadmin
+    host: localhost
+    password: "{{ pdns_user_password }}"
+    priv: "pdns.*:ALL"
+    state: present
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
 
-    - name: Flush privileges
-      ansible.builtin.command:
-        cmd: >
-          mysql -u root -p{{ mariadb_root_password }} -e "FLUSH PRIVILEGES;"
+- name: "Flush privileges"
+  ansible.builtin.command:
+    cmd: >
+      mysql -u root -p{{ mariadb_root_password }} -e "FLUSH PRIVILEGES;"
