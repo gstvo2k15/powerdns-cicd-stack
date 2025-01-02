@@ -9,6 +9,7 @@
   ansible.builtin.template:
     src: "templates/pdns.conf.j2"
     dest: "/etc/powerdns/pdns.conf"
+    mode: '0644'
   notify: "Restart PowerDNS"
 
 - name: "Restart PowerDNS"
