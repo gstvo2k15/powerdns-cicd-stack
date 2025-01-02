@@ -1,7 +1,7 @@
 ---
 - name: "Ensure system packages are updated"
   ansible.builtin.apt:
-    update_cache: yes
+    update_cache: true
 
 - name: "Install required system dependencies"
   ansible.builtin.apt:

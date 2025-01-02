@@ -3,7 +3,7 @@
     name:
       - pdns-server
       - pdns-backend-mysql
-    state: "present"
+    state: present
 
 - name: "Configure pdns.conf"
   ansible.builtin.template:

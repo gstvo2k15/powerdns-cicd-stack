@@ -1,7 +1,25 @@
-- name: "Install MariaDB"
+- name: Install MariaDB and dependencies
   ansible.builtin.apt:
-    name: "mariadb-server"
-    state: "present"
+    name:
+      - mariadb-server
+      - mariadb-client
+    state: present
+    update_cache: yes
+
+- name: Configure MariaDB to use password authentication for root
+  ansible.builtin.command:
+    cmd: >
+      mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '{{ mariadb_root_password }}'; FLUSH PRIVILEGES;"
+  args:
+    warn: false
+
+- name: Create Ansible user with privileges
+  community.mysql.mysql_user:
+    name: ansible
+    host: localhost
+    password: "{{ ansible_db_password }}"
+    priv: "*.*:ALL,GRANT"
+    state: present
 
 - name: "Configure MariaDB"
   ansible.builtin.template:
@@ -12,12 +30,12 @@
 
 - name: "Create PowerDNS database and user"
   community.mysql.mysql_db:
-    name: "pdns"
-    state: "present"
+    name: pdns
+    state: present
 
 - name: "Grant privileges to PowerDNS user"
   community.mysql.mysql_user:
-    name: "pdns"
-    password: "securepassword"
+    name: pdns
+    password: securepassword
     priv: "pdns.*:ALL"
-    state: "present"
+    state: present
