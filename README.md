@@ -23,11 +23,15 @@ This repository provides a professional deployment of a DNS server using PowerDN
 ## Usage
 1. Clone this repository.
 2. Configure the inventory file (`inventory.yml`) for your server's IP and credentials.
-3. Run the playbook using Ansible:
+3. Create your python venv for lints:
+  ```bash
+      python3.10 -m venv env
+      source env/bin/activate
+      pip install ansible ansible-lint pylint checkov pymysql mysqlclient
+  ```
+4. Run the playbook locally using Ansible:
    ```bash
-      ansible-playbook /root/powerdns-cicd-stack/ansible/install.yml \
-        -i 192.168.1.55, \
-        --private-key ~/.ssh/id_rsa.pub
+      ansible-playbook -i localhost, ansible/install.yml --connection=local
    ```
 
 ## Access
