@@ -15,8 +15,10 @@
   ansible.builtin.shell: |
     pkill -f mysqld_safe || true
     pkill -f mysqld || true
+  when: mariadb_process_check.stdout != ""
   args:
     executable: /bin/bash
+  ignore_errors: yes
 
 - name: "Create reset_root_password.sh script"
   ansible.builtin.copy:
