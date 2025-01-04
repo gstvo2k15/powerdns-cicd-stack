@@ -6,37 +6,29 @@
     state: present
     update_cache: yes
 
-- name: "Stop MariaDB to reset root passwd as first login"
+- name: "Start and enable MariaDB service"
   ansible.builtin.systemd:
     name: mariadb
-    state: stopped
-
-- name: "Create reset_root_password.sh script"
-  ansible.builtin.copy:
-    dest: /usr/local/bin/reset_root_password.sh
-    content: |
-      #!/bin/bash
-      mysqld_safe --skip-grant-tables --skip-networking &
-      sleep 5
-      mysql -u root <<EOF
-      FLUSH PRIVILEGES;
-      ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ mariadb_root_password }}';
-      EOF
-    mode: '0755'
-
-- name: "Execute reset_root_password.sh script"
-  ansible.builtin.command:
-    cmd: /usr/local/bin/reset_root_password.sh
-
-- name: "Remove reset_root_password.sh script"
-  ansible.builtin.file:
-    path: /usr/local/bin/reset_root_password.sh
-    state: absent
-
-- name: "Start MariaDB in normal mode"
-  ansible.builtin.systemd:
-    name: mariadb
+    enabled: true
     state: started
+
+- name: "Set mysql_root_passwd"
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    user: root
+    check_implicit_admin: true
+    password: "{{ mariadb_root_password }}"
+    host: localhost
+
+- name: "Remove remote root"
+  community.mysql.mysql_user:
+    check_implicit_admin: true
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    user: root
+    host: "{{ ansible_fqdn }}"
+    state: absent
 
 - name: Create PowerDNS database
   community.mysql.mysql_db:
