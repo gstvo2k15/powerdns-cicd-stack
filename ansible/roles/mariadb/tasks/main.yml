@@ -33,11 +33,11 @@
     path: /usr/local/bin/reset_root_password.sh
     state: absent
 
-- name: "Create PowerDNS database"
 - name: "Start MariaDB in normal mode"
   ansible.builtin.systemd:
     name: mariadb
     state: started
+
 - name: Create PowerDNS database
   community.mysql.mysql_db:
     name: pdns
@@ -59,16 +59,9 @@
   ansible.builtin.command:
     cmd: >
       mysql -u root -p{{ mariadb_root_password }} -e "FLUSH PRIVILEGES;"
-- name: "Reload service mariadb"
-  ansible.builtin.systemd_service:
-    state: mariadb
-    daemon_reload: true
-    name: crond
-- name: Enable service httpd and ensure it is not masked
-  ansible.builtin.systemd_service:
+
 - name: Enable and ensure MariaDB service is active
   ansible.builtin.systemd:
     name: mariadb
     enabled: true
-    masked: no
     state: started
