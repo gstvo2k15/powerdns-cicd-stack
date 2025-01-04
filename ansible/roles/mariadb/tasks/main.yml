@@ -11,35 +11,32 @@
     name: mariadb
     state: stopped
 
-- name: Check if MariaDB processes are running
+- name: Force stop MariaDB using mysqladmin
   ansible.builtin.shell: |
-    pgrep -f mysqld_safe || pgrep -f mysqld
+    mysqladmin -u root shutdown || true
+  args:
+    executable: /bin/bash
+  ignore_errors: yes
+
+- name: Check if any MariaDB processes are still running
+  ansible.builtin.shell: |
+    pgrep -f mysqld || true
   register: mariadb_process_check
-  failed_when: false
   changed_when: false
 
-- name: Kill MariaDB processes if running
+- name: Kill remaining MariaDB processes if found
   ansible.builtin.shell: |
-    pkill -f mysqld_safe || true
-    pkill -f mysqld || true
+    kill -9 $(pgrep -f mysqld) || true
   when: mariadb_process_check.stdout != ""
   args:
     executable: /bin/bash
-  ignore_errors: true
-
-- name: Force kill MariaDB if still running
-  ansible.builtin.shell: |
-    kill -9 $(pgrep -f mysqld_safe || pgrep -f mysqld) || true
-  when: mariadb_process_check.stdout != ""
-  args:
-    executable: /bin/bash
-  ignore_errors: true
+  ignore_errors: yes
 
 - name: Ensure MariaDB is not running
   ansible.builtin.shell: |
-    pgrep -f mysqld_safe || pgrep -f mysqld
-  register: check_mariadb
-  failed_when: check_mariadb.stdout != ""
+    pgrep -f mysqld || true
+  register: final_process_check
+  failed_when: final_process_check.stdout != ""
   changed_when: false
 
 - name: Create reset_root_password.sh script
