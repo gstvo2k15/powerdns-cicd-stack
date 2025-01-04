@@ -1,69 +1,42 @@
-- name: Install MariaDB and dependencies
-  ansible.builtin.apt:
-    name:
-      - mariadb-server
-      - mariadb-client
-    state: present
-    update_cache: yes
-
 - name: Stop MariaDB service
   ansible.builtin.systemd:
     name: mariadb
     state: stopped
 
-- name: Force stop MariaDB using mysqladmin
+- name: Kill remaining MariaDB processes if any
   ansible.builtin.shell: |
-    mysqladmin -u root shutdown || true
+    pkill -9 -f mysqld || true
   args:
     executable: /bin/bash
-  ignore_errors: yes
+  ignore_errors: true
 
-- name: Check if any MariaDB processes are still running
+- name: Ensure MariaDB processes are not running
   ansible.builtin.shell: |
     pgrep -f mysqld || true
   register: mariadb_process_check
   changed_when: false
+  failed_when: mariadb_process_check.stdout != ""
 
-- name: Kill remaining MariaDB processes if found
+- name: Clean MariaDB control files
   ansible.builtin.shell: |
-    kill -9 $(pgrep -f mysqld) || true
-  when: mariadb_process_check.stdout != ""
+    rm -f /var/lib/mysql/aria_log_control
+    rm -f /var/lib/mysql/ibtmp1
   args:
     executable: /bin/bash
-  ignore_errors: yes
+  become: true
+  ignore_errors: true
 
-- name: Ensure MariaDB is not running
-  ansible.builtin.shell: |
-    pgrep -f mysqld || true
-  register: final_process_check
-  failed_when: final_process_check.stdout != ""
-  changed_when: false
-
-- name: Create reset_root_password.sh script
-  ansible.builtin.copy:
-    dest: /usr/local/bin/reset_root_password.sh
-    content: |
-      #!/bin/bash
-      mysqld_safe --skip-grant-tables --skip-networking &
-      sleep 5
-      mysql -u root <<EOF
-      FLUSH PRIVILEGES;
-      ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ mariadb_root_password }}';
-      EOF
-      mysqladmin shutdown
-    mode: '0755'
-
-- name: Execute reset_root_password.sh script
-  ansible.builtin.command:
-    cmd: /usr/local/bin/reset_root_password.sh
-  ignore_errors: yes
-
-- name: Remove reset_root_password.sh script
-  ansible.builtin.file:
-    path: /usr/local/bin/reset_root_password.sh
-    state: absent
-
-- name: Start MariaDB in normal mode
+- name: Start MariaDB service
   ansible.builtin.systemd:
     name: mariadb
     state: started
+
+- name: Check MariaDB status
+  ansible.builtin.systemd:
+    name: mariadb
+    failed_when: false
+    register: mariadb_status
+
+- name: Debug MariaDB status
+  ansible.builtin.debug:
+    var: mariadb_status
