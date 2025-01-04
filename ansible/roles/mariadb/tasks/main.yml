@@ -11,14 +11,27 @@
     name: mariadb
     state: stopped
 
-- name: "Ensure that have been killed any running MariaDB processes"
+- name: "Check for running MariaDB processes"
+  ansible.builtin.shell: |
+    pgrep -f mysqld_safe || pgrep -f mysqld
+  register: mariadb_process_check
+  failed_when: false
+  changed_when: false
+
+- name: "Kill running MariaDB processes if found"
   ansible.builtin.shell: |
     pkill -f mysqld_safe || true
     pkill -f mysqld || true
-  when: mariadb_process_check.stdout != ""
+  when: mariadb_process_check is defined and mariadb_process_check.stdout != ""
   args:
     executable: /bin/bash
   ignore_errors: yes
+
+- name: "Ensure MariaDB is not running"
+  ansible.builtin.wait_for:
+    path: /var/run/mysqld/mysqld.pid
+    state: absent
+    timeout: 30
 
 - name: "Create reset_root_password.sh script"
   ansible.builtin.copy:
