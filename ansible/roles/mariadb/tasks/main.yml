@@ -1,42 +1,74 @@
-- name: Stop MariaDB service
+- name: "Install MariaDB and dependencies"
+  ansible.builtin.apt:
+    name:
+      - mariadb-server
+      - mariadb-client
+    state: present
+    update_cache: yes
+
+- name: "Stop MariaDB to reset root passwd as first login"
   ansible.builtin.systemd:
     name: mariadb
     state: stopped
 
-- name: Kill remaining MariaDB processes if any
-  ansible.builtin.shell: |
-    pkill -9 -f mysqld || true
-  args:
-    executable: /bin/bash
-  ignore_errors: true
+- name: "Create reset_root_password.sh script"
+  ansible.builtin.copy:
+    dest: /usr/local/bin/reset_root_password.sh
+    content: |
+      #!/bin/bash
+      mysqld_safe --skip-grant-tables --skip-networking &
+      sleep 5
+      mysql -u root <<EOF
+      FLUSH PRIVILEGES;
+      ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ mariadb_root_password }}';
+      EOF
+    mode: '0755'
 
-- name: Ensure MariaDB processes are not running
-  ansible.builtin.shell: |
-    pgrep -f mysqld || true
-  register: mariadb_process_check
-  changed_when: false
-  failed_when: mariadb_process_check.stdout != ""
+- name: "Execute reset_root_password.sh script"
+  ansible.builtin.command:
+    cmd: /usr/local/bin/reset_root_password.sh
 
-- name: Clean MariaDB control files
-  ansible.builtin.shell: |
-    rm -f /var/lib/mysql/aria_log_control
-    rm -f /var/lib/mysql/ibtmp1
-  args:
-    executable: /bin/bash
-  become: true
-  ignore_errors: true
+- name: "Remove reset_root_password.sh script"
+  ansible.builtin.file:
+    path: /usr/local/bin/reset_root_password.sh
+    state: absent
 
-- name: Start MariaDB service
+- name: "Create PowerDNS database"
+- name: "Start MariaDB in normal mode"
   ansible.builtin.systemd:
     name: mariadb
     state: started
+- name: Create PowerDNS database
+  community.mysql.mysql_db:
+    name: pdns
+    state: present
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
 
-- name: Check MariaDB status
+- name: "Grant privileges to PowerDNS user"
+  community.mysql.mysql_user:
+    name: pdnsadmin
+    host: localhost
+    password: "{{ pdns_user_password }}"
+    priv: "pdns.*:ALL"
+    state: present
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+
+- name: "Flush privileges"
+  ansible.builtin.command:
+    cmd: >
+      mysql -u root -p{{ mariadb_root_password }} -e "FLUSH PRIVILEGES;"
+- name: "Reload service mariadb"
+  ansible.builtin.systemd_service:
+    state: mariadb
+    daemon_reload: true
+    name: crond
+- name: Enable service httpd and ensure it is not masked
+  ansible.builtin.systemd_service:
+- name: Enable and ensure MariaDB service is active
   ansible.builtin.systemd:
     name: mariadb
-    failed_when: false
-    register: mariadb_status
-
-- name: Debug MariaDB status
-  ansible.builtin.debug:
-    var: mariadb_status
+    enabled: true
+    masked: no
+    state: started
