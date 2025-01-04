@@ -11,6 +11,13 @@
     name: mariadb
     state: stopped
 
+- name: "Ensure that have been killed any running MariaDB processes"
+  ansible.builtin.shell: |
+    pkill -f mysqld_safe || true
+    pkill -f mysqld || true
+  args:
+    executable: /bin/bash
+
 - name: "Create reset_root_password.sh script"
   ansible.builtin.copy:
     dest: /usr/local/bin/reset_root_password.sh
