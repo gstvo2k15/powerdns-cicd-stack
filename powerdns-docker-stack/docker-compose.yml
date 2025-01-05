@@ -40,8 +40,9 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    volumes:
-      - nginx_data:/etc/nginx/conf.d
+    environment:
+      - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
+      - DUCKDNS_DOMAIN=${DUCKDNS_DOMAIN}
     depends_on:
       - powerdns
     restart: always
