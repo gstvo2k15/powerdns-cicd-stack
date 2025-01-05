@@ -28,14 +28,3 @@ SQLA_DB_PASSWORD = 'password'
 SQLA_DB_HOST = '127.0.0.1'
 SQLA_DB_NAME = 'pdns'
 SQLALCHEMY_TRACK_MODIFICATIONS = True
-
-# SQLA_DB_USER = 'pda'
-# SQLA_DB_PASSWORD = 'changeme'
-# SQLA_DB_HOST = '127.0.0.1'
-# SQLA_DB_NAME = 'pda'
-# SQLALCHEMY_DATABASE_URI = 'mysql://{}:{}@{}/{}'.format(
-#     urllib.parse.quote_plus(SQLA_DB_USER),
-#     urllib.parse.quote_plus(SQLA_DB_PASSWORD),
-#     SQLA_DB_HOST,
-#     SQLA_DB_NAME
-# )
