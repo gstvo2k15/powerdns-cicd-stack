@@ -1,5 +1,6 @@
 FROM alpine:latest
 
-RUN apk add --no-cache pdns pdns-backend-mysql
+RUN apk add --no-cache powerdns-mysql
 COPY pdns.conf /etc/pdns/
-CMD ["pdns_server", "--daemon=no"]
+
+CMD ["pdns_server", "--daemon=no", "--guardian=no", "--loglevel=9"]

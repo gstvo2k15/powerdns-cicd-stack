@@ -1,4 +1,5 @@
 version: "3.8"
+
 services:
   mariadb:
     build:
@@ -12,6 +13,7 @@ services:
     volumes:
       - ./mariadb/schema.sql:/docker-entrypoint-initdb.d/schema.sql
       - mariadb_data:/var/lib/mysql
+      - ./mariadb/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "3306:3306"
     healthcheck:
@@ -44,12 +46,14 @@ services:
     build:
       context: ./nginx
     container_name: nginx
+    environment:
+      DUCKDNS_TOKEN: ${DUCKDNS_TOKEN}
+      DUCKDNS_DOMAIN: ${DUCKDNS_DOMAIN}
+    volumes:
+      - nginx_data:/etc/nginx
     ports:
       - "80:80"
       - "443:443"
-    environment:
-      - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
-      - DUCKDNS_DOMAIN=${DUCKDNS_DOMAIN}
     depends_on:
       - powerdns
     restart: always
