@@ -1,0 +1,51 @@
+version: "3.8"
+services:
+  mariadb:
+    build:
+      context: ./mariadb
+    container_name: mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: pdns
+      MYSQL_USER: pdnsadmin
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    restart: always
+
+  powerdns:
+    build:
+      context: ./powerdns
+    container_name: powerdns
+    environment:
+      PDNS_gmysql_host: mariadb
+      PDNS_gmysql_port: 3306
+      PDNS_gmysql_user: pdnsadmin
+      PDNS_gmysql_password: ${MYSQL_PASSWORD}
+      PDNS_gmysql_dbname: pdns
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+      - "8081:8081"
+    depends_on:
+      - mariadb
+    restart: always
+
+  nginx:
+    build:
+      context: ./nginx
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - nginx_data:/etc/nginx/conf.d
+    depends_on:
+      - powerdns
+    restart: always
+
+volumes:
+  mariadb_data:
+  nginx_data:
