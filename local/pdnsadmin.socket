@@ -1,0 +1,9 @@
+# /etc/systemd/system/pdnsadmin.socket
+[Unit]
+Description=PowerDNS-Admin socket
+
+[Socket]
+ListenStream=/run/pdnsadmin/socket
+
+[Install]
+WantedBy=sockets.target
