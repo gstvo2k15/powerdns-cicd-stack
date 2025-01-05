@@ -10,6 +10,7 @@ services:
       MYSQL_USER: pdnsadmin
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
       - mariadb_data:/var/lib/mysql
     ports:
       - "3306:3306"
@@ -17,13 +18,13 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
-      retries: 3      
+      retries: 3
     restart: always
 
   powerdns:
     depends_on:
       mariadb:
-        condition: service_healthy  
+        condition: service_healthy
     build:
       context: ./powerdns
     container_name: powerdns
@@ -56,4 +57,3 @@ services:
 volumes:
   mariadb_data:
   nginx_data:
-
