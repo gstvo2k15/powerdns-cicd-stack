@@ -1,143 +1,91 @@
-apt install mariadb-server -yqq
-mysql
-mysql -u root
+#!/bin/bash
+set -eEuou pipefail
 
-systemctl start mariadb
-mysql
-systemctl disable --now systemd-resolved
-rm -rf /etc/resolv.conf
-echo "nameserver 8.8.8.8" > /etc/resolv.conf
-apt-get install pdns-server pdns-backend-mysql -y
+# Variables
+MARIADB_CONF="/etc/powerdns/pdns.d/pdns.local.gmysql.conf"
+PDNS_ADMIN_DIR="/var/www/html/pdns"
+VENV_DIR="${PDNS_ADMIN_DIR}/flask"
+NGINX_CONF="/etc/nginx/conf.d/pdns-admin.conf"
+MYSQL_USER="pdnsadmin"
+MYSQL_DB="pdns"
+MYSQL_PASSWORD="your_password"
+GIT_REPO="https://github.com/ngoduykhanh/PowerDNS-Admin.git"
+SERVER_NAME="your_domain"
 
-mysql -u pdnsadmin pdns < /usr/share/pdns-backend-mysql/schema/schema.mysql.sql
+# Functions
+function install_dependencies() {
+    apt-get update -yqq
+    apt-get install -yqq mariadb-server pdns-server pdns-backend-mysql nginx python3-dev \
+        libsasl2-dev libldap2-dev libssl-dev libxml2-dev libxslt1-dev libffi-dev \
+        pkg-config apt-transport-https virtualenv build-essential libmariadb-dev git \
+        python3-flask nodejs libpq-dev
+}
 
-vim /etc/powerdns/pdns.d/pdns.local.gmysql.conf
-chmod 640 /etc/powerdns/pdns.d/pdns.local.gmysql.conf
-chown pdns:pdns /etc/powerdns/pdns.d/pdns.local.gmysql.conf
-systemctl stop pdns
-pdns_server --daemon=no --guardian=no --loglevel=9
-systemctl enable --now mariadb powerdns
-systemctl enable --now mariadb pdnsç
-systemctl enable --now mariadb pdns
+function configure_mariadb_and_pdns() {
+    systemctl start mariadb
+    mysql -u root -e "CREATE DATABASE ${MYSQL_DB};"
+    mysql -u root -e "CREATE USER '${MYSQL_USER}'@'localhost' IDENTIFIED BY '${MYSQL_PASSWORD}';"
+    mysql -u root -e "GRANT ALL PRIVILEGES ON ${MYSQL_DB}.* TO '${MYSQL_USER}'@'localhost';"
+    mysql -u root "${MYSQL_DB}" < /usr/share/pdns-backend-mysql/schema/schema.mysql.sql
 
-apt-get install nginx python3-dev libsasl2-dev libldap2-dev libssl-dev libxml2-dev libxslt1-dev libxmlsec1-dev libffi-dev pkg-config apt-transport-https virtualenv build-essential libmariadb-dev git python3-flask -yqq
-apt-get install nodejs -yqq
-curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
-echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+    cat > "${MARIADB_CONF}" <<EOF
+gmysql-host=localhost
+gmysql-user=${MYSQL_USER}
+gmysql-password=${MYSQL_PASSWORD}
+gmysql-dbname=${MYSQL_DB}
+EOF
 
+    chmod 640 "${MARIADB_CONF}"
+    chown pdns:pdns "${MARIADB_CONF}"
+    systemctl restart pdns
+}
 
-apt-get update -yqq && apt-get install yarn -yqq
-git clone https://github.com/ngoduykhanh/PowerDNS-Admin.git /var/www/html/pdns
-cd /var/www/html/pdns/
-virtualenv -p python3 flask
-source ./flask/bin/activate
-pip install -r requirements.txt
-cat requirements.txt
-deactivate
-vim /var/www/html/pdns/powerdnsadmin/default_config.py
-cd /var/www/html/pdns/
-source ./flask/bin/activate
-export FLASK_APP=powerdnsadmin/__init__.py
-flask db upgrade
-yarn install --pure-lockfile
-flask assets build
-deactivate
-vim /etc/powerdns/pdns.conf
-systemctl restart pdns
-vim /etc/nginx/conf.d/pdns-admin.conf
-nginx -t
-chown -R www-data:www-data /var/www/html/pdns
-systemctl restart nginx.service
+function clone_and_prepare_pdns_admin() {
+    git clone "${GIT_REPO}" "${PDNS_ADMIN_DIR}"
+    cd "${PDNS_ADMIN_DIR}" || exit
+    python3 -m venv "${VENV_DIR}"
 
+    if [[ ! -f "${VENV_DIR}/bin/activate" ]]; then
+        echo "Error: Virtual environment activation script not found at ${VENV_DIR}/bin/activate"
+        exit 1
+    fi
 
-systemctl daemon-reload
-echo "d /run/pdnsadmin 0755 pdns pdns -" >> /etc/tmpfiles.d/pdnsadmin.conf
-mkdir /run/pdnsadmin/
-chown -R pdns: /run/pdnsadmin/
-chown -R pdns: /var/www/html/pdns/powerdnsadmin/
-systemctl daemon-reload
-systemctl enable --now pdnsadmin.service pdnsadmin.socket
+    source "${VENV_DIR}/bin/activate"
+    pip install --upgrade pip
+    pip install -r requirements.txt
+    deactivate
+}
 
-systemctl start pdnsadmin.service
+function configure_nginx() {
+    cat > "${NGINX_CONF}" <<EOF
+server {
+    listen 80;
+    server_name ${SERVER_NAME};
 
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOF
 
-ls -ltr /var/www/html/pdns/flask/bin/gunicorn
-find / -type f -name gunicorn
-cd  /var/www/html/pdns
+    nginx -t
+    systemctl restart nginx
+}
 
-source ./flask/bin/activate
-pip install -r requirements.txt
+function finalize_setup() {
+    chown -R www-data:www-data "${PDNS_ADMIN_DIR}"
+    chmod -R 755 "${PDNS_ADMIN_DIR}"
+    systemctl enable --now mariadb pdns nginx
+}
 
-virtualenv -p python3 flask
-source ./flask/bin/activate
-pip install -r requirements.txt
-vim requirements.txt
-pip install -r requirements.txt
-deactivate
+# Execution
+install_dependencies
+configure_mariadb_and_pdns
+clone_and_prepare_pdns_admin
+configure_nginx
+finalize_setup
 
-systemctl start pdnsadmin.service
-
-source ./flask/bin/activate
-pip install guincorn
-pip install gunicorn
-deactivate
-
-systemctl start pdnsadmin.service
-
-chown -R pdns: /var/www/html/pdns/powerdnsadmin/
-chmod 640 /etc/powerdns/pdns.d/pdns.local.gmysql.conf
-systemctl start pdnsadmin.service
-
-systemctl daemon-reload
-systemctl restart pdnsadmin.service
-
-
-source /var/www/html/pdns/flask/bin/activate
-pip show flask
-pip install flask
-deactivate
-systemctl restart pdnsadmin.service
-
-rm -rf /var/www/html/pdns/flask
-python3 -m venv /var/www/html/pdns/flask
-source /var/www/html/pdns/flask/bin/activate
-pip install --upgrade pip
-pip install -r /var/www/html/pdns/requirements.txt
-systemctl restart pdnsadmin.service
-
-source /var/www/html/pdns/flask/bin/activate
-pip install flask gunicorn
-dea
-deactivate
-systemctl restart pdnsadmin.service
-
-chown -R www-data:www-data /var/www/html/pdns
-chmod -R 755 /var/www/html/pdns
-systemctl restart pdnsadmin.service
-
-
-source /var/www/html/pdns/flask/bin/activate
-pip install -r /var/www/html/pdns/requirements.txt
-pip install Flask==2.2.5
-which python
-
-
-sudo apt update -yqq && sudo apt install -yqq libpq-dev python3-dev
-source /var/www/html/pdns/flask/bin/activate
-pip install -r /var/www/html/pdns/requirements.txt
-pip install psycopg2-binary==2.9.5
-pip show psycopg2-binary==2.9.5
-pip install psycopg2-binary==2.9.5
-pip show flask
-deactivate
-systemctl restart pdnsadmin.service
-
-cat requirements.txt
-source /var/www/html/pdns/flask/bin/activate
-pip freeze > /var/www/html/pdns/requirements.txt
-cat /var/www/html/pdns/requirements.txt
-
-
-flask db upgrade
-systemctl daemon-reload
-systemctl restart mariadb.service mariadb.socket nginx.service pdns.service pdnsadmin.service pdnsadmin.socket

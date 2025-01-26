@@ -37,3 +37,11 @@ This repository provides a professional deployment of a DNS server using PowerDN
 ## Access
 - PowerDNS listens on port `53` (UDP and TCP).
 - PowerDNS-Admin is accessible via `http://<server-ip>:9191`.
+
+## Lints used
+- shellcheck: It detects syntax errors, security issues, and common pitfalls in Bash, sh, and other interpreters.
+  ```bash
+     apt install -yqq shellcheck
+     shellcheck local/install.sh
+  ```
+     
